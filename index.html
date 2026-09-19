@@ -1,0 +1,1550 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blended Debt-Rate Calculator</title>
+  <style>
+    :root {
+      --bg: #eef2f9;
+      --card: #ffffff;
+      --muted: #667085;
+      --text: #1d2939;
+      --border: #d8e0ee;
+      --purple: #881eff;
+      --purple-dark: #6c18cc;
+      --blue: #1cb3ff;
+      --green: #00ce4b;
+      --green-dark: #00953b;
+      --pink: #ec6884;
+      --warn: #f59e0b;
+      --shadow: 0 20px 60px rgba(34, 51, 84, 0.12);
+      --radius: 22px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(136, 30, 255, 0.16), transparent 34%),
+        radial-gradient(circle at top right, rgba(28, 179, 255, 0.14), transparent 26%),
+        var(--bg);
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 2rem));
+      margin: 2rem auto 3rem;
+    }
+
+    .shell {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      box-shadow: var(--shadow);
+      border-radius: 30px;
+      overflow: hidden;
+    }
+
+    .hero {
+      padding: 2rem;
+      background: linear-gradient(135deg, rgba(136, 30, 255, 0.95), rgba(28, 179, 255, 0.95));
+      color: white;
+    }
+
+    .hero h1 {
+      margin: 0 0 0.65rem;
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 1.05;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 60rem;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    .hero-meta {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .tag {
+      padding: 0.45rem 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 999px;
+      font-size: 0.92rem;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(330px, 0.9fr);
+      gap: 0;
+    }
+
+    .panel {
+      padding: 1.5rem;
+    }
+
+    .panel-results {
+      background: #f7f9fd;
+      border-left: 1px solid var(--border);
+    }
+
+    .section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.2rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 8px 24px rgba(43, 59, 93, 0.04);
+    }
+
+    .section h2,
+    .section h3 {
+      margin: 0 0 0.3rem;
+    }
+
+    .section p,
+    .section legend + p {
+      margin: 0.15rem 0 0;
+      color: var(--muted);
+    }
+
+    .section-header,
+    .row-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .button-row,
+    .button-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+    }
+
+    button,
+    .button-link {
+      border: 0;
+      border-radius: 999px;
+      padding: 0.8rem 1.1rem;
+      font: inherit;
+      cursor: pointer;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+    }
+
+    button:hover,
+    .button-link:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(43, 59, 93, 0.14);
+    }
+
+    .primary {
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      color: white;
+    }
+
+    .secondary {
+      background: #edf2ff;
+      color: var(--purple-dark);
+    }
+
+    .subtle {
+      background: white;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .pill-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.45rem 0.7rem;
+      border-radius: 999px;
+      background: #f0f7ff;
+      color: #0f5c8a;
+      font-size: 0.92rem;
+    }
+
+    .grid,
+    .scenario-grid,
+    .mortgage-grid {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .scenario-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+    }
+
+    .mortgage-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .field,
+    .field-full {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .field-full {
+      grid-column: 1 / -1;
+    }
+
+    label,
+    legend {
+      font-weight: 700;
+    }
+
+    input[type="text"],
+    select {
+      width: 100%;
+      padding: 0.85rem 0.95rem;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      font: inherit;
+      color: var(--text);
+      background: white;
+    }
+
+    input[type="text"]:focus,
+    select:focus {
+      outline: 3px solid rgba(136, 30, 255, 0.16);
+      border-color: rgba(136, 30, 255, 0.65);
+    }
+
+    input[type="checkbox"] {
+      accent-color: var(--purple);
+    }
+
+    .hint,
+    .field small {
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    fieldset {
+      padding: 0;
+      margin: 0;
+      border: 0;
+      min-width: 0;
+    }
+
+    .choice-row,
+    .toggle-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .choice-row label,
+    .toggle-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-weight: 600;
+      color: var(--text);
+      background: #f7f5ff;
+      border: 1px solid #e4dbfb;
+      padding: 0.7rem 0.85rem;
+      border-radius: 14px;
+    }
+
+    .debt-list {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .debt-card {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 1rem;
+      background: linear-gradient(180deg, #fff, #fbfcff);
+    }
+
+    .debt-card .grid {
+      margin-top: 0.8rem;
+    }
+
+    .remove-button {
+      background: #fff1f4;
+      color: #ae2349;
+      border: 1px solid #ffd6e0;
+      padding: 0.55rem 0.85rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1rem;
+    }
+
+    .stat {
+      background: white;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      padding: 1rem;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .stat-value {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--purple-dark);
+    }
+
+    .cards {
+      display: grid;
+      gap: 0.95rem;
+    }
+
+    .compare-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 1rem;
+    }
+
+    .compare-card h3 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .accent {
+      width: 0.95rem;
+      height: 0.95rem;
+      border-radius: 999px;
+      display: inline-block;
+      margin-right: 0.55rem;
+    }
+
+    .accent-current { background: var(--purple); }
+    .accent-refi { background: var(--green); }
+    .accent-heloc { background: var(--blue); }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.8rem;
+    }
+
+    .metric {
+      padding: 0.75rem 0.85rem;
+      background: #f8faff;
+      border-radius: 16px;
+      border: 1px solid #e9eef8;
+    }
+
+    .metric b {
+      display: block;
+      font-size: 1rem;
+      margin-top: 0.2rem;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .bar-stack {
+      display: grid;
+      gap: 0.45rem;
+      margin-top: 0.9rem;
+    }
+
+    .bar {
+      height: 0.9rem;
+      width: 100%;
+      border-radius: 999px;
+      background: #ecf0f8;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: inherit;
+    }
+
+    .bar-interest { background: linear-gradient(135deg, #ff95af, var(--pink)); }
+    .bar-principal { background: linear-gradient(135deg, #52e58a, var(--green-dark)); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      background: white;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 0.95rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    th {
+      background: #f6f7fb;
+      font-size: 0.92rem;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .table-note {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .status {
+      margin-top: 1rem;
+      padding: 0.9rem 1rem;
+      border-radius: 18px;
+      border: 1px solid #d7e6ff;
+      background: #f3f8ff;
+      color: #0f4d8c;
+    }
+
+    .status.warn {
+      background: #fff7e8;
+      border-color: #fde2aa;
+      color: #9a6300;
+    }
+
+    .disclaimer {
+      margin-top: 1rem;
+      padding: 1rem 1.1rem;
+      border-radius: 20px;
+      background: #fffdf5;
+      border: 1px solid #f6e7b0;
+      color: #6c5706;
+      line-height: 1.55;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      margin-top: 0.9rem;
+      line-height: 1.55;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 999px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      .panel-results {
+        border-left: 0;
+        border-top: 1px solid var(--border);
+      }
+    }
+
+    @media (max-width: 700px) {
+      .page {
+        width: min(100% - 1rem, 100%);
+        margin: 0.5rem auto 1.5rem;
+      }
+
+      .shell {
+        border-radius: 20px;
+      }
+
+      .hero,
+      .panel {
+        padding: 1rem;
+      }
+
+      .grid,
+      .scenario-grid,
+      .mortgage-grid,
+      .stats-grid,
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      th,
+      td {
+        padding: 0.7rem;
+      }
+    }
+
+    @media print {
+      body {
+        background: white;
+      }
+
+      .page {
+        width: 100%;
+        margin: 0;
+      }
+
+      .shell {
+        box-shadow: none;
+        border: 0;
+      }
+
+      button {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="shell">
+      <section class="hero">
+        <h1>Blended debt-rate calculator</h1>
+        <p>Estimate your current consumer-debt blended rate, monthly interest burn, and how a cash-out refinance or HELOC could compare if you redirect the same debt-payment budget.</p>
+        <div class="hero-meta">
+          <span class="tag">Responsive and embeddable</span>
+          <span class="tag">No external dependencies</span>
+          <span class="tag">Example values included</span>
+        </div>
+      </section>
+
+      <div class="content">
+        <section class="panel" aria-label="Calculator inputs">
+          <div class="section">
+            <div class="section-header">
+              <div>
+                <h2>Current consumer debts</h2>
+                <p>Replace the examples below with your own balances, APRs, monthly payments, and optional current monthly interest charges.</p>
+              </div>
+              <div class="button-stack">
+                <button id="addDebtButton" class="primary" type="button">Add debt</button>
+                <button id="resetButton" class="secondary" type="button">Reset example</button>
+                <button id="printButton" class="subtle" type="button">Print / Save PDF</button>
+              </div>
+            </div>
+            <div class="pill-note" id="exampleNote">Example scenario loaded — replace with your own numbers.</div>
+            <div id="debtList" class="debt-list" aria-live="polite"></div>
+          </div>
+
+          <div class="section">
+            <h2>Existing mortgage (optional)</h2>
+            <p>Enter your existing mortgage only if you want total secured-debt blended rates after consolidation.</p>
+            <div class="mortgage-grid">
+              <div class="field">
+                <label for="mortgageBalance">Existing mortgage balance</label>
+                <input id="mortgageBalance" type="text" inputmode="decimal" data-format="currency">
+              </div>
+              <div class="field">
+                <label for="mortgageRate">Existing mortgage rate (APR %)</label>
+                <input id="mortgageRate" type="text" inputmode="decimal" data-format="percent">
+              </div>
+            </div>
+          </div>
+
+          <div class="scenario-grid">
+            <fieldset class="section" aria-describedby="refiHelp">
+              <legend><h2>Cash-out refinance</h2></legend>
+              <p id="refiHelp">Estimate a fixed-rate mortgage cash-out used to consolidate debt.</p>
+              <div class="grid">
+                <div class="field">
+                  <label for="refiAmount">Debt consolidated</label>
+                  <input id="refiAmount" type="text" inputmode="decimal" data-format="currency">
+                </div>
+                <div class="field">
+                  <label for="refiClosingCosts">Closing costs</label>
+                  <input id="refiClosingCosts" type="text" inputmode="decimal" data-format="currency">
+                </div>
+                <div class="field">
+                  <label for="refiRate">Rate (APR %)</label>
+                  <input id="refiRate" type="text" inputmode="decimal" data-format="percent">
+                </div>
+                <div class="field">
+                  <label for="refiTermYears">Term (years)</label>
+                  <input id="refiTermYears" type="text" inputmode="decimal" data-format="number">
+                </div>
+                <div class="field-full">
+                  <label><input id="refiIncludeClosingCosts" type="checkbox"> Roll closing costs into the new balance</label>
+                  <small>When checked, payoff and payment calculations use debt consolidated plus closing costs.</small>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset class="section" aria-describedby="helocHelp">
+              <legend><h2>HELOC</h2></legend>
+              <p id="helocHelp">Choose either interest-only or fully amortizing payments. Variable-rate mode uses a simple annual rate-change assumption.</p>
+              <div class="grid">
+                <div class="field">
+                  <label for="helocAmount">Amount drawn</label>
+                  <input id="helocAmount" type="text" inputmode="decimal" data-format="currency">
+                </div>
+                <div class="field">
+                  <label for="helocFees">Fees</label>
+                  <input id="helocFees" type="text" inputmode="decimal" data-format="currency">
+                </div>
+                <div class="field">
+                  <label for="helocRate">Starting rate (APR %)</label>
+                  <input id="helocRate" type="text" inputmode="decimal" data-format="percent">
+                </div>
+                <div class="field">
+                  <label for="helocTermYears">Amortization term (years)</label>
+                  <input id="helocTermYears" type="text" inputmode="decimal" data-format="number">
+                </div>
+                <div class="field-full">
+                  <label><input id="helocIncludeFees" type="checkbox"> Add fees to the drawn balance</label>
+                </div>
+                <div class="field-full">
+                  <label for="helocPaymentMode">Payment mode</label>
+                  <select id="helocPaymentMode">
+                    <option value="amortizing">Fully amortizing</option>
+                    <option value="interestOnly">Interest-only</option>
+                  </select>
+                </div>
+                <div class="field-full">
+                  <label><input id="helocVariableRate" type="checkbox"> Use variable-rate assumption</label>
+                  <small>If enabled, the rate changes once per year by the amount below. Payments stay based on the starting terms unless you are in interest-only mode.</small>
+                </div>
+                <div class="field-full">
+                  <label for="helocAnnualRateChange">Annual rate change assumption (% per year)</label>
+                  <input id="helocAnnualRateChange" type="text" inputmode="decimal" data-format="percent">
+                </div>
+              </div>
+            </fieldset>
+          </div>
+        </section>
+
+        <section class="panel panel-results" aria-label="Calculator results">
+          <div class="stats-grid" id="topStats"></div>
+
+          <div class="section">
+            <div class="row-head">
+              <div>
+                <h2>Scenario comparison</h2>
+                <p>“Keep paying the same total amount as before” means the current total consumer-debt payment becomes the payment on the refinance or HELOC balance. It does not add the old debt payment on top of the new scheduled payment.</p>
+              </div>
+              <div class="pill-note" id="selfCheckStatus">Running calculation self-checks…</div>
+            </div>
+            <div id="comparisonCards" class="cards"></div>
+            <div class="footer-note" id="formulaNote"></div>
+          </div>
+
+          <div class="section">
+            <h2>Quick comparison table</h2>
+            <div class="table-note">If a payment is less than or equal to monthly interest, the calculator marks the scenario as not amortizing.</div>
+            <div id="comparisonTableWrap"></div>
+            <div id="statusMessage" class="status" aria-live="polite"></div>
+          </div>
+
+          <div class="disclaimer">
+            This calculator is an educational estimate, not lending advice. Actual rates, fees, taxes, escrows, payoff timing, promotional terms, closing costs, and HELOC variable-rate behavior can change. Verify any consolidation option with a qualified lender, advisor, or financial professional before making decisions.
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      const exampleState = {
+        debts: [
+          { id: 1, name: "Credit card", balance: 8200, rate: 24.99, payment: 245, interestOverride: 171 },
+          { id: 2, name: "Personal loan", balance: 6100, rate: 13.4, payment: 198, interestOverride: "" },
+          { id: 3, name: "Retail card", balance: 4200, rate: 29.9, payment: 172, interestOverride: "" },
+          { id: 4, name: "Auto repair loan", balance: 1800, rate: 9.5, payment: 110, interestOverride: "" }
+        ],
+        mortgage: {
+          balance: 280000,
+          rate: 5.875
+        },
+        refi: {
+          amount: 20300,
+          closingCosts: 2500,
+          includeClosingCosts: true,
+          rate: 6.5,
+          termYears: 30
+        },
+        heloc: {
+          amount: 20300,
+          fees: 450,
+          includeFees: true,
+          rate: 9.25,
+          termYears: 15,
+          paymentMode: "amortizing",
+          variableRate: true,
+          annualRateChange: 0.5
+        }
+      };
+
+      const elements = {
+        debtList: document.getElementById("debtList"),
+        addDebtButton: document.getElementById("addDebtButton"),
+        resetButton: document.getElementById("resetButton"),
+        printButton: document.getElementById("printButton"),
+        exampleNote: document.getElementById("exampleNote"),
+        mortgageBalance: document.getElementById("mortgageBalance"),
+        mortgageRate: document.getElementById("mortgageRate"),
+        refiAmount: document.getElementById("refiAmount"),
+        refiClosingCosts: document.getElementById("refiClosingCosts"),
+        refiIncludeClosingCosts: document.getElementById("refiIncludeClosingCosts"),
+        refiRate: document.getElementById("refiRate"),
+        refiTermYears: document.getElementById("refiTermYears"),
+        helocAmount: document.getElementById("helocAmount"),
+        helocFees: document.getElementById("helocFees"),
+        helocIncludeFees: document.getElementById("helocIncludeFees"),
+        helocRate: document.getElementById("helocRate"),
+        helocTermYears: document.getElementById("helocTermYears"),
+        helocPaymentMode: document.getElementById("helocPaymentMode"),
+        helocVariableRate: document.getElementById("helocVariableRate"),
+        helocAnnualRateChange: document.getElementById("helocAnnualRateChange"),
+        topStats: document.getElementById("topStats"),
+        comparisonCards: document.getElementById("comparisonCards"),
+        comparisonTableWrap: document.getElementById("comparisonTableWrap"),
+        statusMessage: document.getElementById("statusMessage"),
+        formulaNote: document.getElementById("formulaNote"),
+        selfCheckStatus: document.getElementById("selfCheckStatus")
+      };
+
+      function cloneState(value) {
+        return JSON.parse(JSON.stringify(value));
+      }
+
+      const state = cloneState(exampleState);
+      let nextDebtId = state.debts.reduce((max, debt) => Math.max(max, debt.id), 0) + 1;
+
+      function parseNumber(value) {
+        if (typeof value === "number") {
+          return Number.isFinite(value) ? value : 0;
+        }
+
+        const cleaned = String(value ?? "").replace(/[^0-9.-]/g, "");
+        const parsed = Number.parseFloat(cleaned);
+        return Number.isFinite(parsed) ? parsed : 0;
+      }
+
+      function round(value, decimals = 2) {
+        const factor = 10 ** decimals;
+        return Math.round((value + Number.EPSILON) * factor) / factor;
+      }
+
+      function formatCurrency(value) {
+        return new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: 0
+        }).format(Number.isFinite(value) ? value : 0);
+      }
+
+      function formatCurrencyPrecise(value) {
+        return new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(Number.isFinite(value) ? value : 0);
+      }
+
+      function formatPercent(value, digits = 2) {
+        return `${(Number.isFinite(value) ? value : 0).toFixed(digits)}%`;
+      }
+
+      function formatMonths(months) {
+        if (!Number.isFinite(months) || months <= 0) {
+          return "—";
+        }
+
+        const years = Math.floor(months / 12);
+        const remMonths = Math.round(months % 12);
+
+        if (years <= 0) {
+          return `${remMonths} mo`;
+        }
+
+        if (remMonths === 0) {
+          return `${years} yr`;
+        }
+
+        return `${years} yr ${remMonths} mo`;
+      }
+
+      function normalizeInputValue(value, format) {
+        if (value === "" || value == null) {
+          return "";
+        }
+
+        const numeric = parseNumber(value);
+        if (format === "currency") {
+          return new Intl.NumberFormat("en-US", {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+          }).format(numeric);
+        }
+
+        if (format === "percent") {
+          return round(numeric, 3).toString();
+        }
+
+        return round(numeric, 3).toString();
+      }
+
+      function inputValueForFocus(value) {
+        if (value === "" || value == null) {
+          return "";
+        }
+
+        return String(round(parseNumber(value), 3));
+      }
+
+      function monthlyRateFromApr(apr) {
+        return Math.max(0, parseNumber(apr)) / 100 / 12;
+      }
+
+      function amortizingPayment(balance, annualRate, months) {
+        const safeBalance = Math.max(0, parseNumber(balance));
+        const safeMonths = Math.max(0, Math.round(parseNumber(months)));
+
+        if (!safeBalance || !safeMonths) {
+          return 0;
+        }
+
+        const rate = monthlyRateFromApr(annualRate);
+        if (rate === 0) {
+          return safeBalance / safeMonths;
+        }
+
+        return safeBalance * rate / (1 - (1 + rate) ** (-safeMonths));
+      }
+
+      function impliedMonthlyRate(balance, annualRate, interestOverride) {
+        const safeBalance = Math.max(0, parseNumber(balance));
+        const override = parseNumber(interestOverride);
+
+        if (safeBalance > 0 && override > 0) {
+          return override / safeBalance;
+        }
+
+        return monthlyRateFromApr(annualRate);
+      }
+
+      function simulatePayoff({
+        balance,
+        payment,
+        annualRate,
+        maxMonths = 1200,
+        variableRate = false,
+        annualRateChange = 0,
+        interestOnly = false
+      }) {
+        let remaining = Math.max(0, parseNumber(balance));
+        const scheduledPayment = Math.max(0, parseNumber(payment));
+        const annualStep = parseNumber(annualRateChange);
+        let totalInterest = 0;
+        let months = 0;
+        let firstMonthlyInterest = 0;
+
+        while (remaining > 0.005 && months < maxMonths) {
+          const currentAnnualRate = Math.max(0, parseNumber(annualRate) + (variableRate ? Math.floor(months / 12) * annualStep : 0));
+          const currentMonthlyRate = currentAnnualRate / 100 / 12;
+          const interest = remaining * currentMonthlyRate;
+          const currentPayment = interestOnly ? interest : scheduledPayment;
+
+          if (months === 0) {
+            firstMonthlyInterest = interest;
+          }
+
+          if (currentPayment <= interest + 0.000001) {
+            return {
+              months,
+              totalInterest,
+              monthlyInterestAtStart: firstMonthlyInterest || interest,
+              nonAmortizing: true,
+              hitLimit: false,
+              balanceRemaining: remaining
+            };
+          }
+
+          const actualPayment = Math.min(currentPayment, remaining + interest);
+          const principal = Math.max(0, actualPayment - interest);
+          totalInterest += interest;
+          remaining = Math.max(0, remaining - principal);
+          months += 1;
+        }
+
+        return {
+          months,
+          totalInterest,
+          monthlyInterestAtStart: firstMonthlyInterest,
+          nonAmortizing: remaining > 0.005,
+          hitLimit: remaining > 0.005,
+          balanceRemaining: remaining
+        };
+      }
+
+      function simulateCurrentDebt(debt) {
+        const monthlyPayment = Math.max(0, parseNumber(debt.payment));
+        const balance = Math.max(0, parseNumber(debt.balance));
+        const monthlyRate = impliedMonthlyRate(balance, debt.rate, debt.interestOverride);
+        const annualRate = monthlyRate * 12 * 100;
+        const monthlyInterest = balance * monthlyRate;
+        const principalReduction = monthlyPayment - monthlyInterest;
+
+        const payoff = simulatePayoff({
+          balance,
+          payment: monthlyPayment,
+          annualRate
+        });
+
+        return {
+          name: debt.name || "Debt",
+          balance,
+          monthlyPayment,
+          monthlyInterest,
+          principalReduction,
+          payoff,
+          annualRate
+        };
+      }
+
+      function computePortfolio() {
+        const details = state.debts.map(simulateCurrentDebt);
+        const totalBalance = details.reduce((sum, debt) => sum + debt.balance, 0);
+        const totalPayment = details.reduce((sum, debt) => sum + debt.monthlyPayment, 0);
+        const monthlyInterest = details.reduce((sum, debt) => sum + debt.monthlyInterest, 0);
+        const monthlyPrincipal = details.reduce((sum, debt) => sum + debt.principalReduction, 0);
+        const weightedRate = totalBalance > 0
+          ? state.debts.reduce((sum, debt) => sum + (parseNumber(debt.balance) * parseNumber(debt.rate)), 0) / totalBalance
+          : 0;
+        const cannotAmortize = details.some((debt) => debt.payoff.nonAmortizing);
+        const payoffMonths = cannotAmortize ? NaN : Math.max(...details.map((debt) => debt.payoff.months), 0);
+        const totalInterest = cannotAmortize ? NaN : details.reduce((sum, debt) => sum + debt.payoff.totalInterest, 0);
+
+        return {
+          details,
+          totalBalance,
+          totalPayment,
+          monthlyInterest,
+          monthlyPrincipal,
+          weightedRate,
+          cannotAmortize,
+          payoffMonths,
+          totalInterest
+        };
+      }
+
+      function securedBlendedRate(newBalance, newRate) {
+        const mortgageBalance = Math.max(0, parseNumber(state.mortgage.balance));
+        const mortgageRate = parseNumber(state.mortgage.rate);
+        const safeNewBalance = Math.max(0, parseNumber(newBalance));
+
+        if (mortgageBalance <= 0 || safeNewBalance <= 0) {
+          return null;
+        }
+
+        return ((mortgageBalance * mortgageRate) + (safeNewBalance * parseNumber(newRate))) / (mortgageBalance + safeNewBalance);
+      }
+
+      function computeRefi(portfolio) {
+        const debtConsolidated = Math.max(0, parseNumber(state.refi.amount));
+        const closingCosts = Math.max(0, parseNumber(state.refi.closingCosts));
+        const balance = debtConsolidated + (state.refi.includeClosingCosts ? closingCosts : 0);
+        const rate = parseNumber(state.refi.rate);
+        const termMonths = Math.max(1, Math.round(parseNumber(state.refi.termYears) * 12));
+        const payment = amortizingPayment(balance, rate, termMonths);
+        const monthlyInterest = balance * monthlyRateFromApr(rate);
+        const standardPayoff = simulatePayoff({ balance, payment, annualRate: rate });
+        const keepPaymentPayoff = simulatePayoff({
+          balance,
+          payment: portfolio.totalPayment,
+          annualRate: rate
+        });
+
+        return {
+          balance,
+          debtConsolidated,
+          fees: closingCosts,
+          payment,
+          monthlyInterest,
+          rate,
+          termMonths,
+          standardPayoff,
+          keepPaymentPayoff,
+          totalSecuredBlendedRate: securedBlendedRate(balance, rate)
+        };
+      }
+
+      function computeHeloc(portfolio) {
+        const drawAmount = Math.max(0, parseNumber(state.heloc.amount));
+        const fees = Math.max(0, parseNumber(state.heloc.fees));
+        const balance = drawAmount + (state.heloc.includeFees ? fees : 0);
+        const rate = parseNumber(state.heloc.rate);
+        const termMonths = Math.max(1, Math.round(parseNumber(state.heloc.termYears) * 12));
+        const interestOnly = state.heloc.paymentMode === "interestOnly";
+        const payment = interestOnly
+          ? balance * monthlyRateFromApr(rate)
+          : amortizingPayment(balance, rate, termMonths);
+        const monthlyInterest = balance * monthlyRateFromApr(rate);
+
+        const standardPayoff = simulatePayoff({
+          balance,
+          payment,
+          annualRate: rate,
+          variableRate: state.heloc.variableRate,
+          annualRateChange: state.heloc.annualRateChange,
+          interestOnly
+        });
+
+        const keepPaymentPayoff = simulatePayoff({
+          balance,
+          payment: portfolio.totalPayment,
+          annualRate: rate,
+          variableRate: state.heloc.variableRate,
+          annualRateChange: state.heloc.annualRateChange,
+          interestOnly: false
+        });
+
+        return {
+          balance,
+          drawAmount,
+          fees,
+          payment,
+          monthlyInterest,
+          rate,
+          termMonths,
+          interestOnly,
+          standardPayoff,
+          keepPaymentPayoff,
+          totalSecuredBlendedRate: securedBlendedRate(balance, rate)
+        };
+      }
+
+      function paymentSplitMarkup(payment, interest) {
+        const safePayment = Math.max(0, payment);
+        const safeInterest = Math.max(0, Math.min(interest, safePayment));
+        const principal = Math.max(0, safePayment - safeInterest);
+        const interestPct = safePayment > 0 ? (safeInterest / safePayment) * 100 : 0;
+        const principalPct = safePayment > 0 ? (principal / safePayment) * 100 : 0;
+
+        return `
+          <div class="bar-stack" aria-label="Payment split">
+            <div class="table-note">Estimated payment split now: ${formatCurrencyPrecise(safeInterest)} interest / ${formatCurrencyPrecise(principal)} principal</div>
+            <div class="bar" role="img" aria-label="Interest share ${round(interestPct, 1)} percent, principal share ${round(principalPct, 1)} percent">
+              <div class="bar-fill bar-interest" style="width:${interestPct}%"></div>
+            </div>
+            <div class="bar" aria-hidden="true">
+              <div class="bar-fill bar-principal" style="width:${principalPct}%"></div>
+            </div>
+          </div>
+        `;
+      }
+
+      function payoffText(payoff) {
+        if (payoff.nonAmortizing) {
+          return "Does not amortize";
+        }
+
+        if (payoff.hitLimit) {
+          return "Over limit";
+        }
+
+        return formatMonths(payoff.months);
+      }
+
+      function interestText(payoff) {
+        return payoff.nonAmortizing ? "Not calculable" : formatCurrency(Math.round(payoff.totalInterest));
+      }
+
+      function renderTopStats(portfolio) {
+        const stats = [
+          { label: "Current balance", value: formatCurrency(Math.round(portfolio.totalBalance)) },
+          { label: "Total monthly payment", value: formatCurrency(Math.round(portfolio.totalPayment)) },
+          { label: "Monthly interest burn", value: formatCurrency(Math.round(portfolio.monthlyInterest)) },
+          { label: "Blended APR", value: formatPercent(portfolio.weightedRate) }
+        ];
+
+        elements.topStats.innerHTML = stats.map((stat) => `
+          <article class="stat">
+            <div class="stat-label">${stat.label}</div>
+            <div class="stat-value">${stat.value}</div>
+          </article>
+        `).join("");
+      }
+
+      function metricBlock(label, value) {
+        return `<div class="metric"><span>${label}</span><b>${value}</b></div>`;
+      }
+
+      function renderComparison(portfolio, refi, heloc) {
+        const currentCard = `
+          <article class="compare-card">
+            <h3><span><span class="accent accent-current"></span>Current consumer debt</span><span>${formatCurrency(Math.round(portfolio.totalBalance))}</span></h3>
+            <div class="metrics">
+              ${metricBlock("Monthly payment", formatCurrency(Math.round(portfolio.totalPayment)))}
+              ${metricBlock("Monthly interest", formatCurrency(Math.round(portfolio.monthlyInterest)))}
+              ${metricBlock("Monthly principal reduction", formatCurrencyPrecise(portfolio.monthlyPrincipal))}
+              ${metricBlock("Weighted blended rate", formatPercent(portfolio.weightedRate))}
+              ${metricBlock("Payoff estimate", portfolio.cannotAmortize ? "One or more debts do not amortize" : formatMonths(portfolio.payoffMonths))}
+              ${metricBlock("Interest cost to payoff", portfolio.cannotAmortize ? "Not calculable" : formatCurrency(Math.round(portfolio.totalInterest)))}
+            </div>
+            ${paymentSplitMarkup(portfolio.totalPayment, portfolio.monthlyInterest)}
+          </article>
+        `;
+
+        const refiCard = `
+          <article class="compare-card">
+            <h3><span><span class="accent accent-refi"></span>Cash-out refinance</span><span>${formatCurrency(Math.round(refi.balance))}</span></h3>
+            <div class="metrics">
+              ${metricBlock("Scheduled payment", formatCurrencyPrecise(refi.payment))}
+              ${metricBlock("Origination monthly interest", formatCurrencyPrecise(refi.monthlyInterest))}
+              ${metricBlock("New-loan APR", formatPercent(refi.rate))}
+              ${metricBlock("Total mortgage blended rate", refi.totalSecuredBlendedRate == null ? "Add mortgage details" : formatPercent(refi.totalSecuredBlendedRate))}
+              ${metricBlock("Scheduled payoff", payoffText(refi.standardPayoff))}
+              ${metricBlock("Scheduled interest cost", interestText(refi.standardPayoff))}
+              ${metricBlock("Keep-old-payment payoff", payoffText(refi.keepPaymentPayoff))}
+              ${metricBlock("Keep-old-payment interest", interestText(refi.keepPaymentPayoff))}
+            </div>
+            ${paymentSplitMarkup(refi.payment, refi.monthlyInterest)}
+          </article>
+        `;
+
+        const helocCard = `
+          <article class="compare-card">
+            <h3><span><span class="accent accent-heloc"></span>HELOC</span><span>${formatCurrency(Math.round(heloc.balance))}</span></h3>
+            <div class="metrics">
+              ${metricBlock("Scheduled payment", formatCurrencyPrecise(heloc.payment))}
+              ${metricBlock("Starting monthly interest", formatCurrencyPrecise(heloc.monthlyInterest))}
+              ${metricBlock("Starting APR", formatPercent(heloc.rate))}
+              ${metricBlock("Total secured blended rate", heloc.totalSecuredBlendedRate == null ? "Add mortgage details" : formatPercent(heloc.totalSecuredBlendedRate))}
+              ${metricBlock("Scheduled payoff", heloc.interestOnly ? "Interest-only does not reduce principal" : payoffText(heloc.standardPayoff))}
+              ${metricBlock("Scheduled interest cost", heloc.interestOnly ? "Not finite in interest-only mode" : interestText(heloc.standardPayoff))}
+              ${metricBlock("Keep-old-payment payoff", payoffText(heloc.keepPaymentPayoff))}
+              ${metricBlock("Keep-old-payment interest", interestText(heloc.keepPaymentPayoff))}
+            </div>
+            ${paymentSplitMarkup(heloc.payment, heloc.monthlyInterest)}
+          </article>
+        `;
+
+        elements.comparisonCards.innerHTML = currentCard + refiCard + helocCard;
+      }
+
+      function renderTable(portfolio, refi, heloc) {
+        const rows = [
+          {
+            scenario: "Current consumer debt",
+            balance: formatCurrency(Math.round(portfolio.totalBalance)),
+            payment: formatCurrency(Math.round(portfolio.totalPayment)),
+            interest: formatCurrency(Math.round(portfolio.monthlyInterest)),
+            rate: formatPercent(portfolio.weightedRate),
+            payoff: portfolio.cannotAmortize ? "Some debts do not amortize" : formatMonths(portfolio.payoffMonths),
+            payoffInterest: portfolio.cannotAmortize ? "Not calculable" : formatCurrency(Math.round(portfolio.totalInterest))
+          },
+          {
+            scenario: "Cash-out refinance",
+            balance: formatCurrency(Math.round(refi.balance)),
+            payment: `${formatCurrencyPrecise(refi.payment)}<br><span class="table-note">Keep-old-payment: ${formatCurrency(Math.round(portfolio.totalPayment))}</span>`,
+            interest: formatCurrencyPrecise(refi.monthlyInterest),
+            rate: `${formatPercent(refi.rate)}<br><span class="table-note">${refi.totalSecuredBlendedRate == null ? "Add mortgage data for total secured blend" : `Total secured blend: ${formatPercent(refi.totalSecuredBlendedRate)}`}</span>`,
+            payoff: `${payoffText(refi.standardPayoff)}<br><span class="table-note">Keep-old-payment: ${payoffText(refi.keepPaymentPayoff)}</span>`,
+            payoffInterest: `${interestText(refi.standardPayoff)}<br><span class="table-note">Keep-old-payment: ${interestText(refi.keepPaymentPayoff)}</span>`
+          },
+          {
+            scenario: "HELOC",
+            balance: formatCurrency(Math.round(heloc.balance)),
+            payment: `${formatCurrencyPrecise(heloc.payment)}<br><span class="table-note">Keep-old-payment: ${formatCurrency(Math.round(portfolio.totalPayment))}</span>`,
+            interest: formatCurrencyPrecise(heloc.monthlyInterest),
+            rate: `${formatPercent(heloc.rate)}${state.heloc.variableRate ? `<br><span class="table-note">Annual change assumption: ${formatPercent(state.heloc.annualRateChange)}</span>` : ""}`,
+            payoff: `${heloc.interestOnly ? "Interest-only does not reduce principal" : payoffText(heloc.standardPayoff)}<br><span class="table-note">Keep-old-payment: ${payoffText(heloc.keepPaymentPayoff)}</span>`,
+            payoffInterest: `${heloc.interestOnly ? "Not finite in interest-only mode" : interestText(heloc.standardPayoff)}<br><span class="table-note">Keep-old-payment: ${interestText(heloc.keepPaymentPayoff)}</span>`
+          }
+        ];
+
+        elements.comparisonTableWrap.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Scenario</th>
+                <th scope="col">Balance</th>
+                <th scope="col">Monthly payment</th>
+                <th scope="col">Monthly interest</th>
+                <th scope="col">Annual / blended rate</th>
+                <th scope="col">Payoff time</th>
+                <th scope="col">Interest cost over payoff</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map((row) => `
+                <tr>
+                  <td>${row.scenario}</td>
+                  <td>${row.balance}</td>
+                  <td>${row.payment}</td>
+                  <td>${row.interest}</td>
+                  <td>${row.rate}</td>
+                  <td>${row.payoff}</td>
+                  <td>${row.payoffInterest}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+      }
+
+      function renderStatus(portfolio, refi, heloc) {
+        const messages = [];
+
+        if (portfolio.cannotAmortize) {
+          messages.push("At least one current debt payment is less than or equal to its monthly interest, so current payoff timing is not fully calculable.");
+        }
+
+        if (refi.keepPaymentPayoff.nonAmortizing) {
+          messages.push("Using the current total debt payment as the refinance payment would not amortize the new refinance balance.");
+        }
+
+        if (heloc.keepPaymentPayoff.nonAmortizing) {
+          messages.push("Using the current total debt payment as the HELOC payment would not amortize the HELOC under the chosen assumptions.");
+        }
+
+        if (heloc.interestOnly) {
+          messages.push("Standard HELOC interest-only mode keeps the balance flat until you pay extra principal.");
+        }
+
+        elements.statusMessage.className = `status${messages.length ? " warn" : ""}`;
+        elements.statusMessage.textContent = messages.length
+          ? messages.join(" ")
+          : "All listed scenarios amortize under the assumptions shown. Replace the example values with real terms before relying on the estimate.";
+      }
+
+      function updateFormulaNote(portfolio, refi, heloc) {
+        elements.formulaNote.innerHTML = `
+          Current blended rate = <strong>Σ(balance × APR) ÷ Σ(balance)</strong>, which is ${formatPercent(portfolio.weightedRate)} with the values entered.
+          When you supply an existing mortgage, the refinance and HELOC cards also show a total secured blended rate that weights the existing mortgage balance and the new consolidated balance together.
+          Current payoff timing assumes each listed debt keeps its own payment; freed-up payments are not snowballed into the remaining debts.
+          ${state.heloc.variableRate ? `HELOC payoff estimates assume the HELOC rate changes by ${formatPercent(state.heloc.annualRateChange)} once every 12 months.` : ""}
+        `;
+      }
+
+      function renderDebts() {
+        elements.debtList.innerHTML = state.debts.map((debt, index) => `
+          <article class="debt-card" data-debt-id="${debt.id}">
+            <div class="row-head">
+              <div>
+                <h3>Debt ${index + 1}</h3>
+                <p>Leave monthly interest override blank to estimate it from balance × APR ÷ 12.</p>
+              </div>
+              <button class="remove-button" type="button" data-remove-debt="${debt.id}" ${state.debts.length <= 1 ? "disabled" : ""}>Remove</button>
+            </div>
+            <div class="grid">
+              <div class="field">
+                <label for="debt-name-${debt.id}">Name / label</label>
+                <input id="debt-name-${debt.id}" type="text" data-debt-field="name" data-debt-id="${debt.id}" value="${escapeHtml(debt.name)}">
+              </div>
+              <div class="field">
+                <label for="debt-balance-${debt.id}">Balance</label>
+                <input id="debt-balance-${debt.id}" type="text" inputmode="decimal" data-format="currency" data-debt-field="balance" data-debt-id="${debt.id}" value="${normalizeInputValue(debt.balance, "currency")}">
+              </div>
+              <div class="field">
+                <label for="debt-rate-${debt.id}">Annual interest rate (APR %)</label>
+                <input id="debt-rate-${debt.id}" type="text" inputmode="decimal" data-format="percent" data-debt-field="rate" data-debt-id="${debt.id}" value="${normalizeInputValue(debt.rate, "percent")}">
+              </div>
+              <div class="field">
+                <label for="debt-payment-${debt.id}">Monthly payment</label>
+                <input id="debt-payment-${debt.id}" type="text" inputmode="decimal" data-format="currency" data-debt-field="payment" data-debt-id="${debt.id}" value="${normalizeInputValue(debt.payment, "currency")}">
+              </div>
+              <div class="field-full">
+                <label for="debt-interest-${debt.id}">Optional current monthly interest expense override</label>
+                <input id="debt-interest-${debt.id}" type="text" inputmode="decimal" data-format="currency" data-debt-field="interestOverride" data-debt-id="${debt.id}" value="${normalizeInputValue(debt.interestOverride, "currency")}">
+              </div>
+            </div>
+          </article>
+        `).join("");
+      }
+
+      function renderStaticInputs() {
+        elements.mortgageBalance.value = normalizeInputValue(state.mortgage.balance, "currency");
+        elements.mortgageRate.value = normalizeInputValue(state.mortgage.rate, "percent");
+        elements.refiAmount.value = normalizeInputValue(state.refi.amount, "currency");
+        elements.refiClosingCosts.value = normalizeInputValue(state.refi.closingCosts, "currency");
+        elements.refiRate.value = normalizeInputValue(state.refi.rate, "percent");
+        elements.refiTermYears.value = normalizeInputValue(state.refi.termYears, "number");
+        elements.refiIncludeClosingCosts.checked = Boolean(state.refi.includeClosingCosts);
+        elements.helocAmount.value = normalizeInputValue(state.heloc.amount, "currency");
+        elements.helocFees.value = normalizeInputValue(state.heloc.fees, "currency");
+        elements.helocRate.value = normalizeInputValue(state.heloc.rate, "percent");
+        elements.helocTermYears.value = normalizeInputValue(state.heloc.termYears, "number");
+        elements.helocIncludeFees.checked = Boolean(state.heloc.includeFees);
+        elements.helocPaymentMode.value = state.heloc.paymentMode;
+        elements.helocVariableRate.checked = Boolean(state.heloc.variableRate);
+        elements.helocAnnualRateChange.value = normalizeInputValue(state.heloc.annualRateChange, "percent");
+      }
+
+      function calculateAndRender() {
+        const portfolio = computePortfolio();
+        const refi = computeRefi(portfolio);
+        const heloc = computeHeloc(portfolio);
+
+        renderTopStats(portfolio);
+        renderComparison(portfolio, refi, heloc);
+        renderTable(portfolio, refi, heloc);
+        renderStatus(portfolio, refi, heloc);
+        updateFormulaNote(portfolio, refi, heloc);
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
+      function getDebtById(id) {
+        return state.debts.find((debt) => debt.id === Number(id));
+      }
+
+      function setStateValue(target, key, value, allowBlank = false) {
+        if (allowBlank && String(value).trim() === "") {
+          target[key] = "";
+          return;
+        }
+
+        target[key] = parseNumber(value);
+      }
+
+      function handleFormattedFocus(event) {
+        const input = event.target;
+        if (!(input instanceof HTMLInputElement) || !input.dataset.format) {
+          return;
+        }
+
+        if (input.dataset.debtField) {
+          const debt = getDebtById(input.dataset.debtId);
+          if (!debt) return;
+          input.value = inputValueForFocus(debt[input.dataset.debtField]);
+          return;
+        }
+
+        const map = {
+          mortgageBalance: state.mortgage.balance,
+          mortgageRate: state.mortgage.rate,
+          refiAmount: state.refi.amount,
+          refiClosingCosts: state.refi.closingCosts,
+          refiRate: state.refi.rate,
+          refiTermYears: state.refi.termYears,
+          helocAmount: state.heloc.amount,
+          helocFees: state.heloc.fees,
+          helocRate: state.heloc.rate,
+          helocTermYears: state.heloc.termYears,
+          helocAnnualRateChange: state.heloc.annualRateChange
+        };
+
+        if (Object.hasOwn(map, input.id)) {
+          input.value = inputValueForFocus(map[input.id]);
+        }
+      }
+
+      function handleFormattedBlur(event) {
+        const input = event.target;
+        if (!(input instanceof HTMLInputElement) || !input.dataset.format) {
+          return;
+        }
+
+        if (input.dataset.debtField) {
+          const debt = getDebtById(input.dataset.debtId);
+          if (!debt) return;
+          input.value = normalizeInputValue(debt[input.dataset.debtField], input.dataset.format);
+          return;
+        }
+
+        const value = input.id === "mortgageBalance" ? state.mortgage.balance
+          : input.id === "mortgageRate" ? state.mortgage.rate
+          : input.id === "refiAmount" ? state.refi.amount
+          : input.id === "refiClosingCosts" ? state.refi.closingCosts
+          : input.id === "refiRate" ? state.refi.rate
+          : input.id === "refiTermYears" ? state.refi.termYears
+          : input.id === "helocAmount" ? state.heloc.amount
+          : input.id === "helocFees" ? state.heloc.fees
+          : input.id === "helocRate" ? state.heloc.rate
+          : input.id === "helocTermYears" ? state.heloc.termYears
+          : state.heloc.annualRateChange;
+
+        input.value = normalizeInputValue(value, input.dataset.format);
+      }
+
+      function bindEvents() {
+        elements.addDebtButton.addEventListener("click", () => {
+          state.debts.push({
+            id: nextDebtId++,
+            name: `Debt ${state.debts.length + 1}`,
+            balance: 0,
+            rate: 0,
+            payment: 0,
+            interestOverride: ""
+          });
+          elements.exampleNote.textContent = "Example scenario edited.";
+          renderDebts();
+          calculateAndRender();
+        });
+
+        elements.resetButton.addEventListener("click", () => {
+          Object.assign(state, cloneState(exampleState));
+          nextDebtId = state.debts.reduce((max, debt) => Math.max(max, debt.id), 0) + 1;
+          elements.exampleNote.textContent = "Example scenario loaded — replace with your own numbers.";
+          renderDebts();
+          renderStaticInputs();
+          calculateAndRender();
+        });
+
+        elements.printButton.addEventListener("click", () => window.print());
+
+        elements.debtList.addEventListener("click", (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLButtonElement) || !target.dataset.removeDebt) {
+            return;
+          }
+
+          if (state.debts.length <= 1) {
+            return;
+          }
+
+          state.debts = state.debts.filter((debt) => debt.id !== Number(target.dataset.removeDebt));
+          elements.exampleNote.textContent = "Example scenario edited.";
+          renderDebts();
+          calculateAndRender();
+        });
+
+        elements.debtList.addEventListener("input", (event) => {
+          const input = event.target;
+          if (!(input instanceof HTMLInputElement) || !input.dataset.debtField) {
+            return;
+          }
+
+          const debt = getDebtById(input.dataset.debtId);
+          if (!debt) {
+            return;
+          }
+
+          if (input.dataset.debtField === "name") {
+            debt.name = input.value;
+          } else {
+            setStateValue(debt, input.dataset.debtField, input.value, input.dataset.debtField === "interestOverride");
+          }
+
+          elements.exampleNote.textContent = "Example scenario edited.";
+          calculateAndRender();
+        });
+
+        document.addEventListener("focusin", handleFormattedFocus);
+        document.addEventListener("focusout", handleFormattedBlur);
+
+        const bindStaticText = (input, apply) => {
+          input.addEventListener("input", () => {
+            apply(input.value);
+            elements.exampleNote.textContent = "Example scenario edited.";
+            calculateAndRender();
+          });
+        };
+
+        bindStaticText(elements.mortgageBalance, (value) => setStateValue(state.mortgage, "balance", value));
+        bindStaticText(elements.mortgageRate, (value) => setStateValue(state.mortgage, "rate", value));
+        bindStaticText(elements.refiAmount, (value) => setStateValue(state.refi, "amount", value));
+        bindStaticText(elements.refiClosingCosts, (value) => setStateValue(state.refi, "closingCosts", value));
+        bindStaticText(elements.refiRate, (value) => setStateValue(state.refi, "rate", value));
+        bindStaticText(elements.refiTermYears, (value) => setStateValue(state.refi, "termYears", value));
+        bindStaticText(elements.helocAmount, (value) => setStateValue(state.heloc, "amount", value));
+        bindStaticText(elements.helocFees, (value) => setStateValue(state.heloc, "fees", value));
+        bindStaticText(elements.helocRate, (value) => setStateValue(state.heloc, "rate", value));
+        bindStaticText(elements.helocTermYears, (value) => setStateValue(state.heloc, "termYears", value));
+        bindStaticText(elements.helocAnnualRateChange, (value) => setStateValue(state.heloc, "annualRateChange", value));
+
+        elements.refiIncludeClosingCosts.addEventListener("change", () => {
+          state.refi.includeClosingCosts = elements.refiIncludeClosingCosts.checked;
+          calculateAndRender();
+        });
+
+        elements.helocIncludeFees.addEventListener("change", () => {
+          state.heloc.includeFees = elements.helocIncludeFees.checked;
+          calculateAndRender();
+        });
+
+        elements.helocPaymentMode.addEventListener("change", () => {
+          state.heloc.paymentMode = elements.helocPaymentMode.value;
+          calculateAndRender();
+        });
+
+        elements.helocVariableRate.addEventListener("change", () => {
+          state.heloc.variableRate = elements.helocVariableRate.checked;
+          calculateAndRender();
+        });
+      }
+
+      function runSelfChecks() {
+        const checks = [
+          {
+            name: "Zero-rate payment",
+            pass: round(amortizingPayment(1200, 0, 12), 2) === 100
+          },
+          {
+            name: "Fixed-rate payment",
+            pass: round(amortizingPayment(10000, 12, 12), 2) === 888.49
+          },
+          {
+            name: "Simple payoff loop",
+            pass: (() => {
+              const result = simulatePayoff({ balance: 100, payment: 25, annualRate: 0 });
+              return result.months === 4 && round(result.totalInterest, 2) === 0;
+            })()
+          },
+          {
+            name: "Blended APR formula",
+            pass: round(((1000 * 10) + (3000 * 20)) / 4000, 2) === 17.5
+          }
+        ];
+
+        const passed = checks.filter((check) => check.pass);
+        elements.selfCheckStatus.textContent = `${passed.length}/${checks.length} calculation self-checks passed`;
+        elements.selfCheckStatus.style.background = passed.length === checks.length ? "#ecfdf3" : "#fff7e8";
+        elements.selfCheckStatus.style.color = passed.length === checks.length ? "#166534" : "#9a6300";
+        elements.selfCheckStatus.style.border = passed.length === checks.length ? "1px solid #b7ebc8" : "1px solid #fde2aa";
+        console.info("Calculator self-checks", checks);
+      }
+
+      renderDebts();
+      renderStaticInputs();
+      bindEvents();
+      runSelfChecks();
+      calculateAndRender();
+    })();
+  </script>
+</body>
+</html>
